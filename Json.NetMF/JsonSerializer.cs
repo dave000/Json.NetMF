@@ -8,20 +8,20 @@ using System.Text;
 
 namespace Json.NETMF
 {
-	/// <summary>
+    /// <summary>
     /// JSON.NetMF - JSON Serialization and Deserialization library for .NET Micro Framework
-	/// </summary>
+    /// </summary>
     public class JsonSerializer
-	{
+    {
         public JsonSerializer(DateTimeFormat dateTimeFormat = DateTimeFormat.Default)
-		{
+        {
             DateFormat = dateTimeFormat;
-		}
+        }
 
-	    /// <summary>
-	    /// Gets/Sets the format that will be used to display
-	    /// and parse dates in the Json data.
-	    /// </summary>
+        /// <summary>
+        /// Gets/Sets the format that will be used to display
+        /// and parse dates in the Json data.
+        /// </summary>
         public DateTimeFormat DateFormat { get; set; }
 
         /// <summary>
@@ -30,10 +30,10 @@ namespace Json.NETMF
         /// <param name="o">The value to convert. Supported types are: Boolean, String, Byte, (U)Int16, (U)Int32, Float, Double, Decimal, Array, IDictionary, IEnumerable, Guid, Datetime, DictionaryEntry, Object and null.</param>
         /// <returns>The JSON object as a string or null when the value type is not supported.</returns>
         /// <remarks>For objects, only public properties with getters are converted.</remarks>
-		public string Serialize(object o)
-		{
+        public string Serialize(object o)
+        {
             return SerializeObject(o, this.DateFormat);
-		}
+        }
 
         /// <summary>
         /// Desrializes a Json string into an object.
@@ -45,15 +45,56 @@ namespace Json.NETMF
             return DeserializeString(json);
         }
 
-		/// <summary>
-		/// Deserializes a Json string into an object.
-		/// </summary>
-		/// <param name="json"></param>
+        public object Deserialize(string json, Type targetType)
+        {
+
+            var jsonObject = DeserializeString(json);
+            if (jsonObject is Hashtable)
+            {
+                return loadJsonToType(targetType, (Hashtable)jsonObject);
+            }
+            
+            return jsonObject;
+        }
+
+        private object loadJsonToType(Type targetType, Hashtable jsonObject)
+        {
+            var targetObject = targetType.GetConstructor(new Type[0]).Invoke(new object[0]);
+            
+            var methods = targetType.GetMethods();
+
+            foreach (var method in methods)
+            {
+                
+                if (StringExtensions.StartsWith(method.Name, "set_"))
+                {
+                    var propName = method.Name.Substring(4);
+                    var attr = targetType.GetField("JSON_Name_" + propName);
+                    if (attr != null)
+                    {
+                        propName = (string)attr.GetValue(null);
+                    }
+
+                    method.Invoke(targetObject, new[] { jsonObject[propName] });
+
+                }
+
+            }
+
+            return targetObject;
+        }
+
+
+
+        /// <summary>
+        /// Deserializes a Json string into an object.
+        /// </summary>
+        /// <param name="json"></param>
         /// <returns>An ArrayList, a Hashtable, a double, a long, a string, null, true, or false</returns>
-		public static object DeserializeString(string json)
-		{
-			return JsonParser.JsonDecode(json);
-		}
+        public static object DeserializeString(string json)
+        {
+            return JsonParser.JsonDecode(json);
+        }
 
         /// <summary>
         /// Convert an object to a JSON string.
@@ -140,7 +181,7 @@ namespace Json.NETMF
                 foreach (MethodInfo method in methods)
                 {
                     // We care only about property getters when serializing
-                    if (method.Name.StartsWith("get_"))
+                    if (StringExtensions.StartsWith(method.Name, "get_"))
                     {
                         // Ignore abstract and virtual objects
                         if (method.IsAbstract)
@@ -162,8 +203,17 @@ namespace Json.NETMF
                             continue;
                         }
 
+                        var methodName = method.Name.Substring(4);
+
+                        //override method name
+                        var attr = type.GetField("JSON_Name_" + methodName);
+                        if (attr != null)
+                        {
+                            methodName = (string)attr.GetValue(null);
+                        }
+
                         object returnObject = method.Invoke(o, null);
-                        hashtable.Add(method.Name.Substring(4), returnObject);                 
+                        hashtable.Add(methodName, returnObject);
                     }
                 }
                 return SerializeIDictionary(hashtable, dateTimeFormat);
@@ -179,20 +229,20 @@ namespace Json.NETMF
         /// <returns>The JSON object as a string or null when the value type is not supported.</returns>
         protected static string SerializeIEnumerable(IEnumerable enumerable, DateTimeFormat dateTimeFormat = DateTimeFormat.Default)
         {
-            StringBuilder result = new StringBuilder("[");
+            String result = "[";
 
             foreach (object current in enumerable)
             {
                 if (result.Length > 1)
                 {
-                    result.Append(",");
+                    result += ",";
                 }
 
-                result.Append(SerializeObject(current, dateTimeFormat));
+                result += SerializeObject(current, dateTimeFormat);
             }
 
-            result.Append("]");
-            return result.ToString();
+            result += "]";
+            return result;
         }
 
         /// <summary>
@@ -202,25 +252,25 @@ namespace Json.NETMF
         /// <returns>The JSON object as a string or null when the value type is not supported.</returns>
         protected static string SerializeIDictionary(IDictionary dictionary, DateTimeFormat dateTimeFormat = DateTimeFormat.Default)
         {
-            StringBuilder result = new StringBuilder("{");
+            String result = "{";
 
             foreach (DictionaryEntry entry in dictionary)
             {
                 if (result.Length > 1)
                 {
-                    result.Append(",");
+                    result += ",";
                 }
 
-                result.Append("\"" + entry.Key + "\"");
-                result.Append(":");
-                result.Append(SerializeObject(entry.Value, dateTimeFormat));
+                result += "\"" + entry.Key + "\"";
+                result += ":";
+                result += SerializeObject(entry.Value, dateTimeFormat);
             }
 
-            result.Append("}");
-            return result.ToString();
+            result += "}";
+            return result;
         }
 
-	}
+    }
 
     /// <summary>
     /// Enumeration of the popular formats of time and date

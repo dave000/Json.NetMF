@@ -207,7 +207,7 @@ namespace Json.NETMF
 
 		protected static string ParseString(char[] json, ref int index, ref bool success)
 		{
-            StringBuilder s = new StringBuilder();
+            String s = "";
 			
 			EatWhitespace(json, ref index);
 
@@ -237,35 +237,35 @@ namespace Json.NETMF
 					c = json[index++];
 					if (c == '"')
 					{
-						s.Append('"');
+						s += '"';
 					}
 					else if (c == '\\')
 					{
-						s.Append('\\');
+						s += '\\';
 					}
 					else if (c == '/')
 					{
-						s.Append('/');
+                        s += '/';
 					}
 					else if (c == 'b')
 					{
-						s.Append('\b');
-					}
+                        s += '\b';
+                    }
 					else if (c == 'f')
 					{
-						s.Append('\f');
+						s += '\f';
 					}
 					else if (c == 'n')
 					{
-						s.Append('\n');
+						s += '\n';
 					}
 					else if (c == 'r')
 					{
-						s.Append('\r');
+						s += '\r';
 					}
 					else if (c == 't')
 					{
-						s.Append('\t');
+						s += '\t';
 					}
 					else if (c == 'u')
 					{
@@ -280,7 +280,7 @@ namespace Json.NETMF
 							}
 
 							// convert the integer codepoint to a unicode char and add to string
-							s.Append(CharExtensions.ConvertFromUtf32((int)codePoint));
+                            s += (CharExtensions.ConvertFromUtf32((int)codePoint));
 
 							// skip 4 chars
 							index += 4;
@@ -294,7 +294,7 @@ namespace Json.NETMF
 				}
 				else
 				{
-					s.Append(c);
+					s += c;
 				}
 			}
 
@@ -334,7 +334,7 @@ namespace Json.NETMF
 			string comma = CultureInfo.CurrentUICulture.NumberFormat.NumberGroupSeparator;
 			string minus = CultureInfo.CurrentUICulture.NumberFormat.NegativeSign;
 			string plus = CultureInfo.CurrentUICulture.NumberFormat.PositiveSign;
-			if (value.Contains(dot) || value.Contains(comma) || value.Contains("e") || value.Contains("E"))
+            if (StringExtensions.Contains(value, dot) || StringExtensions.Contains(value, comma) || StringExtensions.Contains(value, "e") || StringExtensions.Contains(value, "E"))
 			{
 				// We have either a double or a float.  Force it to be a double
 				// and let the deserializer unbox it into the proper size.
@@ -343,7 +343,7 @@ namespace Json.NETMF
 			else
 			{
 				NumberStyle style = NumberStyle.Decimal;
-				if(value.StartsWith("0x") || (value.IndexOfAny(new char[] { 'a', 'b', 'c', 'd', 'e', 'f', 'A', 'B', 'C', 'D', 'E', 'F' }) >= 0))
+                if (StringExtensions.StartsWith(value, "0x") || (value.IndexOfAny(new char[] { 'a', 'b', 'c', 'd', 'e', 'f', 'A', 'B', 'C', 'D', 'E', 'F' }) >= 0))
 				{
 					style = NumberStyle.Hexadecimal;
 				}

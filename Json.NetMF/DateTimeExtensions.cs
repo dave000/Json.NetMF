@@ -17,7 +17,7 @@ namespace Json.NETMF
 		{
 			// Check to see if format contains the timezone ID, or contains UTC reference
 			// Neither means it's localtime
-			bool utc = date.EndsWith("Z");
+            bool utc = StringExtensions.EndsWith(date, "Z");
 
 			string[] parts = date.Split(new char[] { 'T', 'Z', ':', '-', '.', '+', }); 
 
@@ -40,7 +40,7 @@ namespace Json.NETMF
 				// There better be a timezone offset
 				string hourOffset = (parts.Length > 7) ? parts[7] : "";
 				string minuteOffset = (parts.Length > 8) ? parts[8] : "";
-				if(date.Contains("+"))
+				if(StringExtensions.Contains( date, "+"))
 				{
 					dt = dt.AddHours(Convert.ToDouble(hourOffset));
 					dt = dt.AddMinutes(Convert.ToDouble(minuteOffset));
